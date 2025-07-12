@@ -1,0 +1,99 @@
+services:
+  ueransim:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ueransim:latest
+    container_name: ueransim
+    hostname: ueransim
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    networks:
+      ueransim-network:
+        ipv4_address: 192.168.100.10
+    volumes:
+      - ./config:/UERANSIM/config:rw
+      - ./logs:/UERANSIM/logs:rw
+      - ueransim-data:/UERANSIM/data
+    ports:
+      - "38412:38412"    # N2 interface (NGAP)
+      - "2152:2152/udp"  # N3 interface (GTP-U)
+      - "4997:4997"      # CLI interface
+    environment:
+      - TZ=UTC
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  gnb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ueransim:latest
+    container_name: ueransim-gnb
+    hostname: ueransim-gnb
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    networks:
+      ueransim-network:
+        ipv4_address: 192.168.100.20
+    volumes:
+      - ./config:/UERANSIM/config:rw
+      - ./logs:/UERANSIM/logs:rw
+    ports:
+      - "38413:38412"
+      - "2153:2152/udp"
+    environment:
+      - TZ=UTC
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    command: ["bash", "-c", "echo 'Starting gNB...'; /UERANSIM/build/nr-gnb -c /UERANSIM/config/free5gc-gnb.yaml"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  ue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ueransim:latest
+    container_name: ueransim-ue
+    hostname: ueransim-ue
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    networks:
+      ueransim-network:
+        ipv4_address: 192.168.100.30
+    volumes:
+      - ./config:/UERANSIM/config:rw
+      - ./logs:/UERANSIM/logs:rw
+    environment:
+      - TZ=UTC
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    command: ["bash", "-c", "echo 'Starting UE...'; /UERANSIM/build/nr-ue -c /UERANSIM/config/free5gc-ue.yaml"]
+    depends_on:
+      - gnb
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  ueransim-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
+          gateway: 192.168.100.1
+
+volumes:
+  ueransim-data:
+    driver: local
