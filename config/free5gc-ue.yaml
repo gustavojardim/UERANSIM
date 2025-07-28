@@ -31,9 +31,9 @@ tunNetmask: '255.255.255.0'
 
 # List of gNB IP addresses for Radio Link Simulation
 gnbSearchList:
-  - 0.0.0.0
-  - 127.0.0.1
-  - 192.168.100.20
+  - 0.0.0.0 # any local ip
+  - 127.0.0.1 # localhost
+  - 192.168.100.20 # docker container ip
 
 # UAC Access Identities Configuration
 uacAic:
